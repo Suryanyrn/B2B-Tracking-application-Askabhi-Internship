@@ -19,7 +19,7 @@ import uuid
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password as _check_password
 from django.utils import timezone
-
+from datetime import timedelta
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -661,9 +661,6 @@ class AuditLog(models.Model):
 # ===========================================================================
 # 8. Authentication Extras (OTP)
 # ===========================================================================
-
-from django.utils.timezone import now
-from datetime import timedelta
 
 class OTPVerification(models.Model):
     # Standard market OTP model for secure short-lived validation
