@@ -1,0 +1,56 @@
+# ==============================================================================
+# B2B Tracking Application Git Ignore Configuration
+# ==============================================================================
+
+# Byte-compiled / optimized / DLL files
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# Environments
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+# DO NOT ignore .env.example
+!.env.example
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+ehthumbs.db
+Thumbs.db
+
+# Project-specific generated assets & documents
+b2b docs/*.pdf
+b2b docs/*.html
+*.html
+*.pdf
+analysis_output.json
