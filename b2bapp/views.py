@@ -900,31 +900,83 @@ class ShipmentViewSet(CompanyScopedMixin, viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
-    @action(detail=True, methods=["put"], url_path="location")
-    def update_location(self, request, pk=None):
+    @action(detail=True, methods=["get", "put"], url_path="location",
+            permission_classes=[IsAuthenticated])
+    def location(self, request, pk=None):
         """
-        PUT /api/shipments/{id}/location
-        Body: { latitude: 12.9716, longitude: 77.5946 }
-
-        REST fallback for GPS updates.
-        Real-time path: WS /ws/shipments/{id}/location  (handled by channels consumer).
+        GET  /api/shipments/{id}/location  → Retrieve live location and route path history.
+        PUT  /api/shipments/{id}/location  → REST fallback to update GPS location (assigned Driver only).
         """
         shipment = self.get_object()
-        lat = request.data.get("latitude")
-        lng = request.data.get("longitude")
 
-        if lat is None or lng is None:
-            raise ValidationError({"detail": "latitude and longitude are required."})
+        if request.method == "GET":
+            # Retrieve location history
+            history = []
+            if shipment.driver:
+                from .models import DriverLocationHistory
+                # Fetch route logging points
+                history_qs = DriverLocationHistory.objects.filter(driver=shipment.driver)
+                if shipment.dispatch_time:
+                    history_qs = history_qs.filter(recorded_at__gte=shipment.dispatch_time)
+                history = [
+                    {
+                        "location": item.location,
+                        "device_id": item.device_id,
+                        "recorded_at": item.recorded_at.isoformat()
+                    }
+                    for item in history_qs.order_by("recorded_at")[:100]
+                ]
+            return Response({
+                "shipment_id": str(shipment.shipment_id),
+                "status": shipment.status,
+                "live_location": shipment.live_location,
+                "route": {
+                    "route_id": str(shipment.route_id) if shipment.route else None,
+                    "start_location": shipment.route.start_location if shipment.route else None,
+                    "end_location": shipment.route.end_location if shipment.route else None,
+                    "distance": shipment.route.distance if shipment.route else None,
+                } if shipment.route else None,
+                "history": history
+            })
 
-        location_str = f"{lat},{lng}"
-        shipment.live_location = location_str
-        shipment.save(update_fields=["live_location"])
+        elif request.method == "PUT":
+            # Driver can only update their own shipment if they are a driver
+            user = request.user
+            if user.is_driver:
+                try:
+                    driver = Driver.objects.get(company=user.company, phone=user.phone)
+                    if shipment.driver != driver:
+                        raise PermissionDenied("You are not assigned to this shipment.")
+                except Driver.DoesNotExist:
+                    raise PermissionDenied("Driver profile not found.")
 
-        # Mirror on the driver record
-        if shipment.driver_id:
-            Driver.objects.filter(pk=shipment.driver_id).update(current_location=location_str)
+            lat = request.data.get("latitude")
+            lng = request.data.get("longitude")
+            device_id = request.data.get("device_id")
 
-        return Response({"live_location": location_str})
+            if lat is None or lng is None:
+                raise ValidationError({"detail": "latitude and longitude are required."})
+
+            location_str = f"{lat},{lng}"
+            shipment.live_location = location_str
+            shipment.save(update_fields=["live_location"])
+
+            # Mirror on the driver record and record location log
+            if shipment.driver_id:
+                driver_qs = Driver.objects.filter(pk=shipment.driver_id)
+                if device_id:
+                    driver_qs.update(current_location=location_str, device_id=device_id)
+                else:
+                    driver_qs.update(current_location=location_str)
+
+                from .models import DriverLocationHistory
+                DriverLocationHistory.objects.create(
+                    driver_id=shipment.driver_id,
+                    device_id=device_id or "",
+                    location=location_str
+                )
+
+            return Response({"live_location": location_str})
 
     def perform_create(self, serializer):
         shipment = serializer.save(company=self.request.user.company)

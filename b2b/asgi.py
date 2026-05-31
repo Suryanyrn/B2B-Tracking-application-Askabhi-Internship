@@ -9,8 +9,7 @@ https://docs.djangoproject.com/en/6.0/howto/deployment/asgi/
 
 import os
 
-from django.core.asgi import get_asgi_application
-
+# Set settings module before importing routing
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'b2b.settings')
 
-application = get_asgi_application()
+from b2bapp.routing import application

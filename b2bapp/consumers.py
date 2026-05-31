@@ -119,14 +119,26 @@ def _get_driver_for_user(user: User) -> Driver | None:
 
 
 @database_sync_to_async
-def _persist_location(shipment_id: str, driver_id, location_str: str) -> None:
+def _persist_location(shipment_id: str, driver_id, location_str: str, device_id: str = None) -> None:
     """
     Atomically write the live_location to Shipment and current_location to Driver.
-    Called on every valid GPS ping from the driver.
+    Also logs the location to DriverLocationHistory for route tracking.
     """
+    from .models import DriverLocationHistory
     Shipment.objects.filter(shipment_id=shipment_id).update(live_location=location_str)
     if driver_id:
-        Driver.objects.filter(driver_id=driver_id).update(current_location=location_str)
+        driver_qs = Driver.objects.filter(driver_id=driver_id)
+        if device_id:
+            driver_qs.update(current_location=location_str, device_id=device_id)
+        else:
+            driver_qs.update(current_location=location_str)
+
+        # Log entry to historical route tracking
+        DriverLocationHistory.objects.create(
+            driver_id=driver_id,
+            device_id=device_id or "",
+            location=location_str
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -285,6 +297,7 @@ class ShipmentLocationConsumer(AsyncWebsocketConsumer):
         # Validate coordinates
         lat = data.get("latitude")
         lng = data.get("longitude")
+        device_id = data.get("device_id")
         if not self._valid_coordinates(lat, lng):
             await self._send_error(
                 "Invalid coordinates. latitude must be −90..90, longitude −180..180."
@@ -299,6 +312,7 @@ class ShipmentLocationConsumer(AsyncWebsocketConsumer):
             self.shipment_id,
             getattr(self.driver, "driver_id", None),
             location_str,
+            device_id=device_id
         )
 
         # Broadcast to every subscriber in the group
@@ -309,6 +323,7 @@ class ShipmentLocationConsumer(AsyncWebsocketConsumer):
                 "shipment_id": str(self.shipment_id),
                 "latitude":    lat,
                 "longitude":   lng,
+                "device_id":   device_id,
                 "timestamp":   timestamp,
                 "driver_name": self.driver.name if self.driver else None,
             },
@@ -328,6 +343,7 @@ class ShipmentLocationConsumer(AsyncWebsocketConsumer):
             "shipment_id": event["shipment_id"],
             "latitude":    event["latitude"],
             "longitude":   event["longitude"],
+            "device_id":   event.get("device_id"),
             "timestamp":   event["timestamp"],
             "driver_name": event.get("driver_name"),
         }))

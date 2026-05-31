@@ -19,6 +19,7 @@ import uuid
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password as _check_password
 from django.utils import timezone
+from django.utils.timezone import now
 from datetime import timedelta
 
 # ---------------------------------------------------------------------------
@@ -374,6 +375,8 @@ class Driver(models.Model):
     is_active              = models.BooleanField(default=True)
     total_orders_delivered = models.PositiveIntegerField(default=0)
     joined_at              = models.DateField(auto_now_add=True)
+    device_id              = models.CharField(max_length=255, blank=True, null=True,
+                                              help_text="Unique hardware device identifier for driver mobile tracking")
     # Updated via WS /ws/shipments/{id}/location — stored as "lat,lng" string
     current_location       = models.CharField(max_length=100, blank=True,
                                               help_text='Comma-separated "latitude,longitude"')
@@ -659,7 +662,31 @@ class AuditLog(models.Model):
         super().save(*args, **kwargs)
 
 # ===========================================================================
-# 8. Authentication Extras (OTP)
+# 8. Driver Location History (GPS tracking trail)
+# ===========================================================================
+
+class DriverLocationHistory(models.Model):
+    """
+    Historical log of a driver's GPS location updates over time.
+    Provides route tracing and auditable physical movement trail.
+    """
+
+    history_id  = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    driver      = models.ForeignKey(Driver, on_delete=models.CASCADE, related_name="location_histories")
+    device_id   = models.CharField(max_length=255, blank=True, null=True,
+                                    help_text="Unique hardware device identifier during tracking")
+    location    = models.CharField(max_length=100, help_text='Comma-separated "latitude,longitude"')
+    recorded_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = "driver_location_history"
+        ordering = ["-recorded_at"]
+
+    def __str__(self):
+        return f"[{self.recorded_at:%Y-%m-%d %H:%M:%S}] Driver {self.driver.name} @ {self.location}"
+
+# ===========================================================================
+# 9. Authentication Extras (OTP)
 # ===========================================================================
 
 class OTPVerification(models.Model):

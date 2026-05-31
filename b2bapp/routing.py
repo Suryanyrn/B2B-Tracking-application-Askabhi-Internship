@@ -62,7 +62,7 @@ from channels.security.websocket import AllowedHostsOriginValidator
 from django.urls import re_path
 
 # Set the Django settings module before any Django imports
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "b2b_tracking.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "b2b.settings")
 
 # Initialise Django — must happen before importing consumers or models
 django_asgi_app = get_asgi_application()

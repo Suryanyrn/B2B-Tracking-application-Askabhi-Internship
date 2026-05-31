@@ -23,6 +23,7 @@ ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', '*').s
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -61,6 +62,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'b2b.wsgi.application'
+ASGI_APPLICATION = 'b2b.asgi.application'
 
 
 # Database
@@ -125,4 +127,23 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'b2bapp.authentication.CustomJWTAuthentication',
     ),
+}
+
+# ==============================================================================
+# CHANNELS CONFIGURATION (WebSockets)
+# ==============================================================================
+# Use InMemoryChannelLayer for easy local development (requires no Redis server).
+# For production multi-process deployments, swap to the Redis channel layer:
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [("127.0.0.1", 6379)],
+#         },
+#     },
+# }
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
 }

@@ -54,3 +54,5 @@ b2b docs/*.html
 *.html
 *.pdf
 analysis_output.json
+driver_gps_simulator.html
+bootstrap_gps_test.py

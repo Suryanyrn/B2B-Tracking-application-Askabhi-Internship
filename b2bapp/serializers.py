@@ -397,7 +397,7 @@ class DriverSerializer(serializers.ModelSerializer):
             "name", "phone", "photo", "license_no",
             "is_available", "is_active",
             "total_orders_delivered", "joined_at",
-            "current_location",
+            "device_id", "current_location",
         ]
         read_only_fields = [
             "driver_id", "company", "company_name",
