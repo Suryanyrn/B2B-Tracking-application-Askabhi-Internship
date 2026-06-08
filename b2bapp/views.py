@@ -27,6 +27,8 @@ Required pip packages:
 import json
 from django.db import transaction
 from django.utils import timezone
+from django.http import HttpResponse
+from django.shortcuts import render
 
 from rest_framework import status, viewsets, filters
 from rest_framework.decorators import action
@@ -1305,3 +1307,6 @@ class VerifyOTPView(APIView):
         otp_record.save()
 
         return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK)
+
+def index(request):
+    return render(request,'index.html')

@@ -69,7 +69,7 @@ MODULE 7 — Notifications & Audit
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-
+from . import views
 from .views import (
     AuditLogView,
     ClientViewSet,
@@ -161,6 +161,7 @@ urlpatterns = [
     # All router-generated routes (Modules 1–7)
     # ------------------------------------------------------------------
     path("api/", include(router.urls)),
+    path("",views.index,name="index"),
 ]
 
 

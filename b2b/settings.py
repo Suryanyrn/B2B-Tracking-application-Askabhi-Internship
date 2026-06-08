@@ -147,3 +147,8 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     },
 }
+
+STATIC_URL = '/b2bapp/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'b2bapp/static'),
+]
